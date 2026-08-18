@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
-  <title>AR Hiro Marker - Flying Birds</title>
+  <title>AR Hiro Marker - Running Tigers</title>
 
   <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
@@ -32,7 +31,7 @@
       transform: translateX(-50%);
       z-index: 20;
 
-      width: min(92vw, 500px);
+      width: min(92vw, 520px);
       padding: 12px 16px;
 
       border-radius: 14px;
@@ -55,32 +54,27 @@
 
     #controls {
       position: fixed;
-      bottom: 20px;
       left: 0;
       right: 0;
-
+      bottom: 20px;
       z-index: 20;
 
       display: flex;
       justify-content: center;
-      gap: 10px;
-
       padding: 0 12px;
     }
 
     button {
-      min-width: 160px;
+      min-width: 190px;
       min-height: 52px;
 
       border: none;
       border-radius: 14px;
 
-      padding: 10px 18px;
-
-      background: #2196f3;
+      background: #ff9800;
       color: white;
 
-      font-size: 16px;
+      font-size: 17px;
       font-weight: 700;
 
       cursor: pointer;
@@ -94,156 +88,156 @@
 
   <script>
 
-    /*
-     * ============================================================
-     * COMPONENT: Flying Bird
-     * ============================================================
-     *
-     * ทำให้นกบินวนรอบ Hiro Marker
-     */
-    AFRAME.registerComponent('flying-bird', {
+    /* ============================================================
+       ตัวแปรความเร็วกลางของเสือ
+       ============================================================ */
+
+    window.tigerSpeed = 1;
+
+
+    /* ============================================================
+       COMPONENT: Running Tiger
+       ============================================================ */
+
+    AFRAME.registerComponent('running-tiger', {
 
       schema: {
-        radius: {
-          type: 'number',
-          default: 1.5
-        },
-
-        height: {
-          type: 'number',
-          default: 1.5
-        },
-
-        speed: {
-          type: 'number',
-          default: 0.7
-        },
-
-        phase: {
+        offset: {
           type: 'number',
           default: 0
+        },
+
+        color: {
+          type: 'color',
+          default: '#f59e0b'
         }
       },
 
       init: function () {
 
-        this.angle = this.data.phase;
+        this.time = this.data.offset;
 
-        this.wingTime = 0;
+        /*
+         * เก็บชิ้นส่วนของตัวเสือ
+         */
+        this.body = this.el.querySelector('.tiger-body');
+        this.head = this.el.querySelector('.tiger-head');
 
-        // สุ่มทิศทางการบิน
-        this.direction =
-          Math.random() > 0.5 ? 1 : -1;
+        this.frontLeft =
+          this.el.querySelector('.front-left');
 
-        // สุ่มความเร็วเล็กน้อย
-        this.randomSpeed =
-          0.85 + Math.random() * 0.3;
+        this.frontRight =
+          this.el.querySelector('.front-right');
+
+        this.backLeft =
+          this.el.querySelector('.back-left');
+
+        this.backRight =
+          this.el.querySelector('.back-right');
+
+        this.tail =
+          this.el.querySelector('.tiger-tail');
       },
+
 
       tick: function (time, delta) {
 
         if (!delta) return;
 
         /*
-         * อ่านความเร็วปัจจุบันจากระบบกลาง
+         * ความเร็วจะเพิ่มตามปุ่ม
          */
-        const globalSpeed =
-          window.birdSpeed || 1;
+        const speed = window.tigerSpeed || 1;
 
         /*
-         * อัปเดตมุมการบิน
+         * Animation time
          */
-        this.angle +=
-          this.data.speed *
-          globalSpeed *
-          this.randomSpeed *
-          this.direction *
-          delta / 1000;
+        this.time += delta * 0.015 * speed;
+
 
         /*
-         * ตำแหน่ง X/Z เป็นวงกลม
+         * ========================================================
+         * ขยับขาแบบวิ่ง
+         * ========================================================
          */
-        const x =
-          Math.cos(this.angle) *
-          this.data.radius;
 
-        const z =
-          Math.sin(this.angle) *
-          this.data.radius;
+        const legSwing =
+          Math.sin(this.time * 2.5) * 0.55;
+
+        const oppositeSwing =
+          Math.sin(this.time * 2.5 + Math.PI) * 0.55;
+
+
+        if (this.frontLeft) {
+          this.frontLeft.object3D.rotation.x =
+            legSwing;
+        }
+
+        if (this.frontRight) {
+          this.frontRight.object3D.rotation.x =
+            oppositeSwing;
+        }
+
+        if (this.backLeft) {
+          this.backLeft.object3D.rotation.x =
+            oppositeSwing;
+        }
+
+        if (this.backRight) {
+          this.backRight.object3D.rotation.x =
+            legSwing;
+        }
+
 
         /*
-         * ทำให้นกบินขึ้นลงเล็กน้อย
+         * ========================================================
+         * ขยับตัวขึ้นลงเล็กน้อย
+         * ========================================================
          */
-        const y =
-          this.data.height +
-          Math.sin(this.angle * 2.5) * 0.25;
+
+        if (this.body) {
+
+          this.body.object3D.position.y =
+            0.48 +
+            Math.abs(
+              Math.sin(this.time * 2.5)
+            ) * 0.025;
+
+        }
+
 
         /*
-         * เปลี่ยนตำแหน่ง
+         * ========================================================
+         * ขยับหาง
+         * ========================================================
          */
-        this.el.object3D.position.set(
-          x,
-          y,
-          z
-        );
+
+        if (this.tail) {
+
+          this.tail.object3D.rotation.y =
+            Math.sin(this.time * 3) * 0.35;
+
+        }
+
 
         /*
-         * ให้นกหันไปตามทิศทางการบิน
+         * ขยับหัวเล็กน้อย
          */
-        const nextAngle =
-          this.angle + 0.05 * this.direction;
 
-        const nextX =
-          Math.cos(nextAngle) *
-          this.data.radius;
+        if (this.head) {
 
-        const nextZ =
-          Math.sin(nextAngle) *
-          this.data.radius;
+          this.head.object3D.rotation.z =
+            Math.sin(this.time * 2.5) * 0.04;
 
-        this.el.object3D.lookAt(
-          nextX,
-          y,
-          nextZ
-        );
-
-        /*
-         * กระพือปีก
-         */
-        this.wingTime +=
-          delta * 0.02 *
-          globalSpeed;
-
-        const wingAngle =
-          Math.sin(this.wingTime) * 35;
-
-        const leftWing =
-          this.el.querySelector('.left-wing');
-
-        const rightWing =
-          this.el.querySelector('.right-wing');
-
-        if (leftWing && rightWing) {
-
-          leftWing.object3D.rotation.z =
-            THREE.MathUtils.degToRad(
-              wingAngle
-            );
-
-          rightWing.object3D.rotation.z =
-            THREE.MathUtils.degToRad(
-              -wingAngle
-            );
         }
       }
     });
 
 
-    /*
-     * ============================================================
-     * เมื่อหน้าเว็บโหลดเสร็จ
-     * ============================================================
-     */
+    /* ============================================================
+       เมื่อเว็บโหลดเสร็จ
+       ============================================================ */
+
     window.addEventListener('DOMContentLoaded', () => {
 
       const marker =
@@ -255,27 +249,26 @@
       const speedButton =
         document.querySelector('#speed-button');
 
-      /*
-       * ความเร็วเริ่มต้น
-       */
-      window.birdSpeed = 1;
 
-      /*
-       * Hiro Marker พบ
-       */
+      /* ==========================================================
+         เมื่อเจอ Hiro Marker
+         ========================================================== */
+
       marker.addEventListener('markerFound', () => {
 
         topPanel.innerHTML =
-          '🕊️ พบ Hiro Marker แล้ว!<span class="hint">' +
-          'นก 4 ตัวกำลังบินวนรอบ Marker' +
+          '🐯🐯 พบ Hiro Marker แล้ว!' +
+          '<span class="hint">' +
+          'เสือ 2 ตัวกำลังวิ่งอยู่กับที่' +
           '</span>';
 
       });
 
 
-      /*
-       * Hiro Marker หาย
-       */
+      /* ==========================================================
+         เมื่อ Marker หาย
+         ========================================================== */
+
       marker.addEventListener('markerLost', () => {
 
         topPanel.innerHTML =
@@ -287,19 +280,17 @@
       });
 
 
-      /*
-       * ปุ่มเพิ่มความเร็ว
-       */
+      /* ==========================================================
+         ปุ่มเพิ่มความเร็ว
+         ========================================================== */
+
       speedButton.addEventListener('click', () => {
 
-        window.birdSpeed += 0.5;
+        window.tigerSpeed += 0.5;
 
-        /*
-         * แสดงความเร็วปัจจุบัน
-         */
         speedButton.textContent =
-          '🚀 เพิ่มความเร็ว (' +
-          window.birdSpeed.toFixed(1) +
+          '⚡ เพิ่มความเร็ว (' +
+          window.tigerSpeed.toFixed(1) +
           'x)';
 
       });
@@ -313,7 +304,7 @@
 <body>
 
   <!-- ==========================================================
-       TOP UI
+       UI ด้านบน
        ========================================================== -->
 
   <div id="top-panel">
@@ -328,20 +319,20 @@
 
 
   <!-- ==========================================================
-       BUTTON
+       ปุ่มควบคุม
        ========================================================== -->
 
   <div id="controls">
 
     <button id="speed-button" type="button">
-      🚀 เพิ่มความเร็ว (1.0x)
+      ⚡ เพิ่มความเร็ว (1.0x)
     </button>
 
   </div>
 
 
   <!-- ==========================================================
-       A-FRAME / AR.JS
+       A-FRAME + AR.JS
        ========================================================== -->
 
   <a-scene
@@ -382,255 +373,311 @@
 
 
       <!-- ======================================================
-           จุดอ้างอิงตรงกลาง Marker
+           พื้นสนาม
            ====================================================== -->
 
       <a-cylinder
-        position="0 0.05 0"
-        radius="0.08"
-        height="0.1"
-        color="#2196f3"
-      >
-      </a-cylinder>
+        position="0 0.03 0"
+        radius="1.25"
+        height="0.05"
+        color="#4e342e"
+      ></a-cylinder>
 
 
       <!-- ======================================================
-           BIRD 1
+           TIGER 1
            ====================================================== -->
 
       <a-entity
-        flying-bird="
-          radius: 1.25;
-          height: 1.5;
-          speed: 0.8;
-          phase: 0;
-        "
+        position="-0.55 0 0"
+        rotation="0 25 0"
+        running-tiger="offset: 0"
       >
 
-        <!-- ตัวนก -->
-        <a-sphere
-          radius="0.10"
-          color="#ffca28"
-        >
-        </a-sphere>
+        <!-- ลำตัว -->
+        <a-box
+          class="tiger-body"
+          position="0 0.48 0"
+          width="0.75"
+          height="0.35"
+          depth="0.32"
+          color="#f59e0b"
+        ></a-box>
+
+
+        <!-- ลายดำ -->
+        <a-box
+          position="-0.18 0.48 0.166"
+          width="0.07"
+          height="0.30"
+          depth="0.015"
+          color="#212121"
+        ></a-box>
+
+        <a-box
+          position="0.02 0.48 0.166"
+          width="0.07"
+          height="0.30"
+          depth="0.015"
+          color="#212121"
+        ></a-box>
+
+        <a-box
+          position="0.20 0.48 0.166"
+          width="0.07"
+          height="0.30"
+          depth="0.015"
+          color="#212121"
+        ></a-box>
+
 
         <!-- หัว -->
-        <a-sphere
-          position="0.09 0.04 0"
-          radius="0.07"
-          color="#ffca28"
-        >
-        </a-sphere>
-
-        <!-- ปีกซ้าย -->
         <a-box
-          class="left-wing"
-          position="0 0 0.13"
-          width="0.08"
-          height="0.04"
+          class="tiger-head"
+          position="0.48 0.58 0"
+          width="0.32"
+          height="0.32"
           depth="0.30"
+          color="#ffb300"
+        ></a-box>
+
+
+        <!-- หู -->
+        <a-cone
+          position="0.40 0.78 0.10"
+          radius-bottom="0.08"
+          height="0.15"
           color="#f57c00"
-        >
-        </a-box>
+        ></a-cone>
 
-        <!-- ปีกขวา -->
-        <a-box
-          class="right-wing"
-          position="0 0 -0.13"
-          width="0.08"
-          height="0.04"
-          depth="0.30"
+        <a-cone
+          position="0.40 0.78 -0.10"
+          radius-bottom="0.08"
+          height="0.15"
           color="#f57c00"
-        >
-        </a-box>
+        ></a-cone>
 
-        <!-- ปาก -->
-        <a-cone
-          position="0.17 0.04 0"
-          radius-bottom="0.035"
-          radius-top="0"
-          height="0.10"
-          rotation="0 0 -90"
-          color="#ff9800"
-        >
-        </a-cone>
+
+        <!-- ตา -->
+        <a-sphere
+          position="0.65 0.64 0.10"
+          radius="0.035"
+          color="#111111"
+        ></a-sphere>
+
+        <a-sphere
+          position="0.65 0.64 -0.10"
+          radius="0.035"
+          color="#111111"
+        ></a-sphere>
+
+
+        <!-- จมูก -->
+        <a-sphere
+          position="0.66 0.55 0"
+          radius="0.045"
+          color="#212121"
+        ></a-sphere>
+
+
+        <!-- ขาหน้า -->
+        <a-box
+          class="front-left"
+          position="0.25 0.22 0.11"
+          width="0.13"
+          height="0.42"
+          depth="0.12"
+          color="#f59e0b"
+        ></a-box>
+
+        <a-box
+          class="front-right"
+          position="0.25 0.22 -0.11"
+          width="0.13"
+          height="0.42"
+          depth="0.12"
+          color="#f59e0b"
+        ></a-box>
+
+
+        <!-- ขาหลัง -->
+        <a-box
+          class="back-left"
+          position="-0.25 0.22 0.11"
+          width="0.13"
+          height="0.42"
+          depth="0.12"
+          color="#f59e0b"
+        ></a-box>
+
+        <a-box
+          class="back-right"
+          position="-0.25 0.22 -0.11"
+          width="0.13"
+          height="0.42"
+          depth="0.12"
+          color="#f59e0b"
+        ></a-box>
+
+
+        <!-- หาง -->
+        <a-cylinder
+          class="tiger-tail"
+          position="-0.48 0.57 0"
+          radius="0.045"
+          height="0.55"
+          rotation="0 0 65"
+          color="#f59e0b"
+        ></a-cylinder>
 
       </a-entity>
 
 
       <!-- ======================================================
-           BIRD 2
+           TIGER 2
            ====================================================== -->
 
       <a-entity
-        flying-bird="
-          radius: 1.65;
-          height: 1.9;
-          speed: 0.65;
-          phase: 1.7;
-        "
+        position="0.55 0 0"
+        rotation="0 -25 0"
+        running-tiger="offset: 3.14"
       >
 
-        <a-sphere
-          radius="0.10"
-          color="#42a5f5"
-        >
-        </a-sphere>
+        <!-- ลำตัว -->
+        <a-box
+          class="tiger-body"
+          position="0 0.48 0"
+          width="0.75"
+          height="0.35"
+          depth="0.32"
+          color="#ef6c00"
+        ></a-box>
 
-        <a-sphere
-          position="0.09 0.04 0"
-          radius="0.07"
-          color="#42a5f5"
-        >
-        </a-sphere>
+
+        <!-- ลายดำ -->
+        <a-box
+          position="-0.18 0.48 0.166"
+          width="0.07"
+          height="0.30"
+          depth="0.015"
+          color="#212121"
+        ></a-box>
 
         <a-box
-          class="left-wing"
-          position="0 0 0.13"
-          width="0.08"
-          height="0.04"
-          depth="0.30"
-          color="#1565c0"
-        >
-        </a-box>
+          position="0.02 0.48 0.166"
+          width="0.07"
+          height="0.30"
+          depth="0.015"
+          color="#212121"
+        ></a-box>
 
         <a-box
-          class="right-wing"
-          position="0 0 -0.13"
-          width="0.08"
-          height="0.04"
+          position="0.20 0.48 0.166"
+          width="0.07"
+          height="0.30"
+          depth="0.015"
+          color="#212121"
+        ></a-box>
+
+
+        <!-- หัว -->
+        <a-box
+          class="tiger-head"
+          position="0.48 0.58 0"
+          width="0.32"
+          height="0.32"
           depth="0.30"
-          color="#1565c0"
-        >
-        </a-box>
+          color="#ff9800"
+        ></a-box>
+
+
+        <!-- หู -->
+        <a-cone
+          position="0.40 0.78 0.10"
+          radius-bottom="0.08"
+          height="0.15"
+          color="#e65100"
+        ></a-cone>
 
         <a-cone
-          position="0.17 0.04 0"
-          radius-bottom="0.035"
-          radius-top="0"
-          height="0.10"
-          rotation="0 0 -90"
-          color="#ff9800"
-        >
-        </a-cone>
-
-      </a-entity>
+          position="0.40 0.78 -0.10"
+          radius-bottom="0.08"
+          height="0.15"
+          color="#e65100"
+        ></a-cone>
 
 
-      <!-- ======================================================
-           BIRD 3
-           ====================================================== -->
-
-      <a-entity
-        flying-bird="
-          radius: 1.45;
-          height: 2.3;
-          speed: 0.9;
-          phase: 3.2;
-        "
-      >
+        <!-- ตา -->
+        <a-sphere
+          position="0.65 0.64 0.10"
+          radius="0.035"
+          color="#111111"
+        ></a-sphere>
 
         <a-sphere
-          radius="0.10"
-          color="#ab47bc"
-        >
-        </a-sphere>
+          position="0.65 0.64 -0.10"
+          radius="0.035"
+          color="#111111"
+        ></a-sphere>
 
+
+        <!-- จมูก -->
         <a-sphere
-          position="0.09 0.04 0"
-          radius="0.07"
-          color="#ab47bc"
-        >
-        </a-sphere>
+          position="0.66 0.55 0"
+          radius="0.045"
+          color="#212121"
+        ></a-sphere>
+
+
+        <!-- ขาหน้า -->
+        <a-box
+          class="front-left"
+          position="0.25 0.22 0.11"
+          width="0.13"
+          height="0.42"
+          depth="0.12"
+          color="#ef6c00"
+        ></a-box>
 
         <a-box
-          class="left-wing"
-          position="0 0 0.13"
-          width="0.08"
-          height="0.04"
-          depth="0.30"
-          color="#6a1b9a"
-        >
-        </a-box>
+          class="front-right"
+          position="0.25 0.22 -0.11"
+          width="0.13"
+          height="0.42"
+          depth="0.12"
+          color="#ef6c00"
+        ></a-box>
+
+
+        <!-- ขาหลัง -->
+        <a-box
+          class="back-left"
+          position="-0.25 0.22 0.11"
+          width="0.13"
+          height="0.42"
+          depth="0.12"
+          color="#ef6c00"
+        ></a-box>
 
         <a-box
-          class="right-wing"
-          position="0 0 -0.13"
-          width="0.08"
-          height="0.04"
-          depth="0.30"
-          color="#6a1b9a"
-        >
-        </a-box>
-
-        <a-cone
-          position="0.17 0.04 0"
-          radius-bottom="0.035"
-          radius-top="0"
-          height="0.10"
-          rotation="0 0 -90"
-          color="#ff9800"
-        >
-        </a-cone>
-
-      </a-entity>
+          class="back-right"
+          position="-0.25 0.22 -0.11"
+          width="0.13"
+          height="0.42"
+          depth="0.12"
+          color="#ef6c00"
+        ></a-box>
 
 
-      <!-- ======================================================
-           BIRD 4
-           ====================================================== -->
-
-      <a-entity
-        flying-bird="
-          radius: 1.9;
-          height: 1.25;
-          speed: 0.72;
-          phase: 4.8;
-        "
-      >
-
-        <a-sphere
-          radius="0.10"
-          color="#66bb6a"
-        >
-        </a-sphere>
-
-        <a-sphere
-          position="0.09 0.04 0"
-          radius="0.07"
-          color="#66bb6a"
-        >
-        </a-sphere>
-
-        <a-box
-          class="left-wing"
-          position="0 0 0.13"
-          width="0.08"
-          height="0.04"
-          depth="0.30"
-          color="#2e7d32"
-        >
-        </a-box>
-
-        <a-box
-          class="right-wing"
-          position="0 0 -0.13"
-          width="0.08"
-          height="0.04"
-          depth="0.30"
-          color="#2e7d32"
-        >
-        </a-box>
-
-        <a-cone
-          position="0.17 0.04 0"
-          radius-bottom="0.035"
-          radius-top="0"
-          height="0.10"
-          rotation="0 0 -90"
-          color="#ff9800"
-        >
-        </a-cone>
+        <!-- หาง -->
+        <a-cylinder
+          class="tiger-tail"
+          position="-0.48 0.57 0"
+          radius="0.045"
+          height="0.55"
+          rotation="0 0 65"
+          color="#ef6c00"
+        ></a-cylinder>
 
       </a-entity>
 
@@ -638,10 +685,7 @@
     </a-marker>
 
 
-    <!-- ========================================================
-         CAMERA
-         ======================================================== -->
-
+    <!-- กล้อง -->
     <a-entity camera></a-entity>
 
   </a-scene>
