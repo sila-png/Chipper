@@ -2,19 +2,26 @@
 <html lang="th">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>Simple Mobile AR Lab - Motor Status</title>
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 
-  <!-- Open-source libraries. The versions are pinned so A-Frame and AR.js match. -->
+  <title>AR Hiro Marker - Flying Birds</title>
+
+  <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+
+  <!-- AR.js -->
   <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.7/aframe/build/aframe-ar.js"></script>
 
   <style>
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
       overflow: hidden;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: system-ui, sans-serif;
       background: #111;
     }
 
@@ -24,43 +31,20 @@
       left: 50%;
       transform: translateX(-50%);
       z-index: 20;
-      width: min(92vw, 520px);
-      padding: 10px 14px;
-      border-radius: 12px;
-      background: rgba(0, 0, 0, 0.68);
+
+      width: min(92vw, 500px);
+      padding: 12px 16px;
+
+      border-radius: 14px;
+      background: rgba(0, 0, 0, 0.7);
       color: white;
+
       text-align: center;
-      font-size: 15px;
-      line-height: 1.4;
-      backdrop-filter: blur(4px);
-    }
-
-    #controls {
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 18px;
-      z-index: 20;
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      padding: 0 12px;
-    }
-
-    button {
-      min-width: 132px;
-      min-height: 48px;
-      border: 0;
-      border-radius: 12px;
-      padding: 10px 14px;
       font-size: 16px;
-      font-weight: 700;
-      cursor: pointer;
-      touch-action: manipulation;
-    }
+      line-height: 1.4;
 
-    #run-button { background: #ffffff; color: #111111; }
-    #status-button { background: #ffd54f; color: #111111; }
+      backdrop-filter: blur(5px);
+    }
 
     .hint {
       display: block;
@@ -68,177 +52,599 @@
       font-size: 12px;
       opacity: 0.8;
     }
+
+    #controls {
+      position: fixed;
+      bottom: 20px;
+      left: 0;
+      right: 0;
+
+      z-index: 20;
+
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+
+      padding: 0 12px;
+    }
+
+    button {
+      min-width: 160px;
+      min-height: 52px;
+
+      border: none;
+      border-radius: 14px;
+
+      padding: 10px 18px;
+
+      background: #2196f3;
+      color: white;
+
+      font-size: 16px;
+      font-weight: 700;
+
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    button:active {
+      transform: scale(0.96);
+    }
   </style>
 
   <script>
-    // A tiny reusable component that rotates an object without extra libraries.
-    AFRAME.registerComponent('spin-control', {
+
+    /*
+     * ============================================================
+     * COMPONENT: Flying Bird
+     * ============================================================
+     *
+     * ทำให้นกบินวนรอบ Hiro Marker
+     */
+    AFRAME.registerComponent('flying-bird', {
+
       schema: {
-        axis: { type: 'string', default: 'y' },
-        speed: { type: 'number', default: 180 },
-        active: { type: 'boolean', default: true }
+        radius: {
+          type: 'number',
+          default: 1.5
+        },
+
+        height: {
+          type: 'number',
+          default: 1.5
+        },
+
+        speed: {
+          type: 'number',
+          default: 0.7
+        },
+
+        phase: {
+          type: 'number',
+          default: 0
+        }
       },
 
-      tick: function (_time, deltaMs) {
-        if (!this.data.active || !deltaMs) return;
+      init: function () {
 
-        const radians = THREE.MathUtils.degToRad(this.data.speed * deltaMs / 1000);
-        const axis = this.data.axis;
+        this.angle = this.data.phase;
 
-        if (axis === 'x') this.el.object3D.rotation.x += radians;
-        if (axis === 'y') this.el.object3D.rotation.y += radians;
-        if (axis === 'z') this.el.object3D.rotation.z += radians;
+        this.wingTime = 0;
+
+        // สุ่มทิศทางการบิน
+        this.direction =
+          Math.random() > 0.5 ? 1 : -1;
+
+        // สุ่มความเร็วเล็กน้อย
+        this.randomSpeed =
+          0.85 + Math.random() * 0.3;
+      },
+
+      tick: function (time, delta) {
+
+        if (!delta) return;
+
+        /*
+         * อ่านความเร็วปัจจุบันจากระบบกลาง
+         */
+        const globalSpeed =
+          window.birdSpeed || 1;
+
+        /*
+         * อัปเดตมุมการบิน
+         */
+        this.angle +=
+          this.data.speed *
+          globalSpeed *
+          this.randomSpeed *
+          this.direction *
+          delta / 1000;
+
+        /*
+         * ตำแหน่ง X/Z เป็นวงกลม
+         */
+        const x =
+          Math.cos(this.angle) *
+          this.data.radius;
+
+        const z =
+          Math.sin(this.angle) *
+          this.data.radius;
+
+        /*
+         * ทำให้นกบินขึ้นลงเล็กน้อย
+         */
+        const y =
+          this.data.height +
+          Math.sin(this.angle * 2.5) * 0.25;
+
+        /*
+         * เปลี่ยนตำแหน่ง
+         */
+        this.el.object3D.position.set(
+          x,
+          y,
+          z
+        );
+
+        /*
+         * ให้นกหันไปตามทิศทางการบิน
+         */
+        const nextAngle =
+          this.angle + 0.05 * this.direction;
+
+        const nextX =
+          Math.cos(nextAngle) *
+          this.data.radius;
+
+        const nextZ =
+          Math.sin(nextAngle) *
+          this.data.radius;
+
+        this.el.object3D.lookAt(
+          nextX,
+          y,
+          nextZ
+        );
+
+        /*
+         * กระพือปีก
+         */
+        this.wingTime +=
+          delta * 0.02 *
+          globalSpeed;
+
+        const wingAngle =
+          Math.sin(this.wingTime) * 35;
+
+        const leftWing =
+          this.el.querySelector('.left-wing');
+
+        const rightWing =
+          this.el.querySelector('.right-wing');
+
+        if (leftWing && rightWing) {
+
+          leftWing.object3D.rotation.z =
+            THREE.MathUtils.degToRad(
+              wingAngle
+            );
+
+          rightWing.object3D.rotation.z =
+            THREE.MathUtils.degToRad(
+              -wingAngle
+            );
+        }
       }
     });
 
+
+    /*
+     * ============================================================
+     * เมื่อหน้าเว็บโหลดเสร็จ
+     * ============================================================
+     */
     window.addEventListener('DOMContentLoaded', () => {
-      const marker = document.querySelector('#hiro-marker');
-      const shaft = document.querySelector('#shaft');
-      const motorBody = document.querySelector('#motor-body');
-      const warningLamp = document.querySelector('#warning-lamp');
-      const arLabel = document.querySelector('#ar-label');
-      const topPanel = document.querySelector('#top-panel');
-      const runButton = document.querySelector('#run-button');
-      const statusButton = document.querySelector('#status-button');
 
-      let running = true;
-      let warning = false;
+      const marker =
+        document.querySelector('#hiro-marker');
 
+      const topPanel =
+        document.querySelector('#top-panel');
+
+      const speedButton =
+        document.querySelector('#speed-button');
+
+      /*
+       * ความเร็วเริ่มต้น
+       */
+      window.birdSpeed = 1;
+
+      /*
+       * Hiro Marker พบ
+       */
       marker.addEventListener('markerFound', () => {
-        topPanel.innerHTML = 'พบ Hiro Marker แล้ว — โมเดลมอเตอร์พร้อมใช้งาน<span class="hint">แตะปุ่มด้านล่างเพื่อทดลองควบคุม</span>';
+
+        topPanel.innerHTML =
+          '🕊️ พบ Hiro Marker แล้ว!<span class="hint">' +
+          'นก 4 ตัวกำลังบินวนรอบ Marker' +
+          '</span>';
+
       });
 
+
+      /*
+       * Hiro Marker หาย
+       */
       marker.addEventListener('markerLost', () => {
-        topPanel.innerHTML = 'เล็งกล้องไปที่ Hiro Marker<span class="hint">วาง Marker บนโต๊ะที่มีแสงเพียงพอและให้เห็นกรอบดำครบทั้งสี่ด้าน</span>';
+
+        topPanel.innerHTML =
+          '📷 เล็งกล้องไปที่ Hiro Marker' +
+          '<span class="hint">' +
+          'วาง Marker ให้เห็นกรอบดำครบทั้งสี่ด้าน' +
+          '</span>';
+
       });
 
-      runButton.addEventListener('click', () => {
-        running = !running;
-        shaft.setAttribute('spin-control', 'active', running);
-        runButton.textContent = running ? 'หยุดมอเตอร์' : 'เริ่มมอเตอร์';
+
+      /*
+       * ปุ่มเพิ่มความเร็ว
+       */
+      speedButton.addEventListener('click', () => {
+
+        window.birdSpeed += 0.5;
+
+        /*
+         * แสดงความเร็วปัจจุบัน
+         */
+        speedButton.textContent =
+          '🚀 เพิ่มความเร็ว (' +
+          window.birdSpeed.toFixed(1) +
+          'x)';
+
       });
 
-      statusButton.addEventListener('click', () => {
-        warning = !warning;
-
-        if (warning) {
-          motorBody.setAttribute('color', '#33CC33');
-          warningLamp.setAttribute('color', '#ff1744');
-          warningLamp.setAttribute('material', 'emissive', '#ff1744');
-          arLabel.setAttribute('value', 'MOTOR M1\nSTATUS: WARNING');
-          statusButton.textContent = 'เปลี่ยนเป็นปกติ';
-        } else {
-          motorBody.setAttribute('color', '#FF0000');
-          warningLamp.setAttribute('color', '#00e676');
-          warningLamp.setAttribute('material', 'emissive', '#00c853');
-          arLabel.setAttribute('value', 'MOTOR M1\nSTATUS: NORMAL');
-          statusButton.textContent = 'จำลองคำเตือน';
-        }
-      });
     });
+
   </script>
 </head>
 
+
 <body>
+
+  <!-- ==========================================================
+       TOP UI
+       ========================================================== -->
+
   <div id="top-panel">
-    เล็งกล้องไปที่ Hiro Marker
-    <span class="hint">อนุญาตให้เว็บไซต์ใช้กล้องเมื่อเบราว์เซอร์ถาม</span>
+
+    📷 เล็งกล้องไปที่ Hiro Marker
+
+    <span class="hint">
+      อนุญาตให้เว็บไซต์ใช้กล้องเมื่อเบราว์เซอร์ถาม
+    </span>
+
   </div>
 
+
+  <!-- ==========================================================
+       BUTTON
+       ========================================================== -->
+
   <div id="controls">
-    <button id="run-button" type="button">หยุดมอเตอร์</button>
-    <button id="status-button" type="button">จำลองคำเตือน</button>
+
+    <button id="speed-button" type="button">
+      🚀 เพิ่มความเร็ว (1.0x)
+    </button>
+
   </div>
+
+
+  <!-- ==========================================================
+       A-FRAME / AR.JS
+       ========================================================== -->
 
   <a-scene
     embedded
+
     vr-mode-ui="enabled: false"
-    renderer="logarithmicDepthBuffer: true; antialias: true; colorManagement: true"
-    arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: false"
+
+    renderer="
+      logarithmicDepthBuffer: true;
+      antialias: true;
+      colorManagement: true;
+    "
+
+    arjs="
+      sourceType: webcam;
+      trackingMethod: best;
+      debugUIEnabled: false;
+    "
   >
+
+
+    <!-- ========================================================
+         HIRO MARKER
+         ======================================================== -->
+
     <a-marker
       id="hiro-marker"
+
       preset="hiro"
+
       emitevents="true"
+
       smooth="true"
       smooth-count="8"
       smooth-tolerance="0.01"
       smooth-threshold="3"
     >
-      <!-- Floor plate -->
-      <a-box
-        position="0 0.04 0"
-        width="1.35"
-        height="0.08"
-        depth="0.85"
-        color="#455a64"
-        roughness="0.8"
-      ></a-box>
 
-      <!-- Two mounting feet -->
-      <a-box position="-0.42 0.15 0" width="0.18" height="0.18" depth="0.55" color="#263238"></a-box>
-      <a-box position="0.42 0.15 0" width="0.18" height="0.18" depth="0.55" color="#263238"></a-box>
 
-      <!-- Motor housing: cylinder lies along X axis -->
+      <!-- ======================================================
+           จุดอ้างอิงตรงกลาง Marker
+           ====================================================== -->
+
       <a-cylinder
-        id="motor-body"
-        position="0 0.47 0"
-        rotation="0 0 90"
-        radius="0.32"
-        height="0.72"
-        segments-radial="32"
-        color="#1976d2"
-        metalness="0.25"
-        roughness="0.55"
-      ></a-cylinder>
+        position="0 0.05 0"
+        radius="0.08"
+        height="0.1"
+        color="#2196f3"
+      >
+      </a-cylinder>
 
-      <!-- Rear cap -->
-      <a-cylinder
-        position="-0.40 0.47 0"
-        rotation="0 0 90"
-        radius="0.27"
-        height="0.12"
-        color="#90a4ae"
-      ></a-cylinder>
 
-      <!-- Shaft assembly: parent fixes the shaft direction; child spins locally -->
-      <a-entity position="0.52 0.47 0" rotation="0 0 90">
-        <a-cylinder
-          id="shaft"
-          radius="0.09"
-          height="0.42"
-          color="#cfd8dc"
-          metalness="0.8"
-          roughness="0.2"
-          spin-control="axis: y; speed: 220; active: true"
+      <!-- ======================================================
+           BIRD 1
+           ====================================================== -->
+
+      <a-entity
+        flying-bird="
+          radius: 1.25;
+          height: 1.5;
+          speed: 0.8;
+          phase: 0;
+        "
+      >
+
+        <!-- ตัวนก -->
+        <a-sphere
+          radius="0.10"
+          color="#ffca28"
         >
-          <a-box position="0 0.12 0.09" width="0.05" height="0.18" depth="0.06" color="#ffeb3b"></a-box>
-        </a-cylinder>
+        </a-sphere>
+
+        <!-- หัว -->
+        <a-sphere
+          position="0.09 0.04 0"
+          radius="0.07"
+          color="#ffca28"
+        >
+        </a-sphere>
+
+        <!-- ปีกซ้าย -->
+        <a-box
+          class="left-wing"
+          position="0 0 0.13"
+          width="0.08"
+          height="0.04"
+          depth="0.30"
+          color="#f57c00"
+        >
+        </a-box>
+
+        <!-- ปีกขวา -->
+        <a-box
+          class="right-wing"
+          position="0 0 -0.13"
+          width="0.08"
+          height="0.04"
+          depth="0.30"
+          color="#f57c00"
+        >
+        </a-box>
+
+        <!-- ปาก -->
+        <a-cone
+          position="0.17 0.04 0"
+          radius-bottom="0.035"
+          radius-top="0"
+          height="0.10"
+          rotation="0 0 -90"
+          color="#ff9800"
+        >
+        </a-cone>
+
       </a-entity>
 
-      <!-- Status lamp -->
-      <a-sphere
-        id="warning-lamp"
-        position="0 0.87 0"
-        radius="0.075"
-        color="#00e676"
-        material="emissive: #00c853; emissiveIntensity: 0.8"
-      ></a-sphere>
 
-      <!-- AR information label -->
-      <a-text
-        id="ar-label"
-        value="MOTOR M1\nSTATUS: NORMAL"
-        position="0 1.12 0"
-        rotation="-90 0 0"
-        align="center"
-        width="2.4"
-        color="#ffffff"
-        side="double"
-      ></a-text>
+      <!-- ======================================================
+           BIRD 2
+           ====================================================== -->
+
+      <a-entity
+        flying-bird="
+          radius: 1.65;
+          height: 1.9;
+          speed: 0.65;
+          phase: 1.7;
+        "
+      >
+
+        <a-sphere
+          radius="0.10"
+          color="#42a5f5"
+        >
+        </a-sphere>
+
+        <a-sphere
+          position="0.09 0.04 0"
+          radius="0.07"
+          color="#42a5f5"
+        >
+        </a-sphere>
+
+        <a-box
+          class="left-wing"
+          position="0 0 0.13"
+          width="0.08"
+          height="0.04"
+          depth="0.30"
+          color="#1565c0"
+        >
+        </a-box>
+
+        <a-box
+          class="right-wing"
+          position="0 0 -0.13"
+          width="0.08"
+          height="0.04"
+          depth="0.30"
+          color="#1565c0"
+        >
+        </a-box>
+
+        <a-cone
+          position="0.17 0.04 0"
+          radius-bottom="0.035"
+          radius-top="0"
+          height="0.10"
+          rotation="0 0 -90"
+          color="#ff9800"
+        >
+        </a-cone>
+
+      </a-entity>
+
+
+      <!-- ======================================================
+           BIRD 3
+           ====================================================== -->
+
+      <a-entity
+        flying-bird="
+          radius: 1.45;
+          height: 2.3;
+          speed: 0.9;
+          phase: 3.2;
+        "
+      >
+
+        <a-sphere
+          radius="0.10"
+          color="#ab47bc"
+        >
+        </a-sphere>
+
+        <a-sphere
+          position="0.09 0.04 0"
+          radius="0.07"
+          color="#ab47bc"
+        >
+        </a-sphere>
+
+        <a-box
+          class="left-wing"
+          position="0 0 0.13"
+          width="0.08"
+          height="0.04"
+          depth="0.30"
+          color="#6a1b9a"
+        >
+        </a-box>
+
+        <a-box
+          class="right-wing"
+          position="0 0 -0.13"
+          width="0.08"
+          height="0.04"
+          depth="0.30"
+          color="#6a1b9a"
+        >
+        </a-box>
+
+        <a-cone
+          position="0.17 0.04 0"
+          radius-bottom="0.035"
+          radius-top="0"
+          height="0.10"
+          rotation="0 0 -90"
+          color="#ff9800"
+        >
+        </a-cone>
+
+      </a-entity>
+
+
+      <!-- ======================================================
+           BIRD 4
+           ====================================================== -->
+
+      <a-entity
+        flying-bird="
+          radius: 1.9;
+          height: 1.25;
+          speed: 0.72;
+          phase: 4.8;
+        "
+      >
+
+        <a-sphere
+          radius="0.10"
+          color="#66bb6a"
+        >
+        </a-sphere>
+
+        <a-sphere
+          position="0.09 0.04 0"
+          radius="0.07"
+          color="#66bb6a"
+        >
+        </a-sphere>
+
+        <a-box
+          class="left-wing"
+          position="0 0 0.13"
+          width="0.08"
+          height="0.04"
+          depth="0.30"
+          color="#2e7d32"
+        >
+        </a-box>
+
+        <a-box
+          class="right-wing"
+          position="0 0 -0.13"
+          width="0.08"
+          height="0.04"
+          depth="0.30"
+          color="#2e7d32"
+        >
+        </a-box>
+
+        <a-cone
+          position="0.17 0.04 0"
+          radius-bottom="0.035"
+          radius-top="0"
+          height="0.10"
+          rotation="0 0 -90"
+          color="#ff9800"
+        >
+        </a-cone>
+
+      </a-entity>
+
+
     </a-marker>
 
+
+    <!-- ========================================================
+         CAMERA
+         ======================================================== -->
+
     <a-entity camera></a-entity>
+
   </a-scene>
+
 </body>
 </html>
